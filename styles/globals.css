@@ -75,3 +75,32 @@ main {
   color: white;
   font-weight: bold;
 }
+
+@media screen and (max-width: 680px) {
+  /*　画面サイズが480px以下の場合ここの記述が適用される　*/
+  .flx {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  h3 {
+    margin: 20px auto;
+    text-align: center;
+  }
+
+  .flx_el {
+    width: 80%;
+    margin: 0 auto;
+  }
+
+  img {
+    width: 200px;
+    height: 200px;
+    margin: 0 auto;
+    display: block;
+  }
+  p {
+    text-align: center;
+  }
+}

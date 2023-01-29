@@ -53,6 +53,14 @@ export default function Home() {
     setLoading(true);
     navigator.geolocation.getCurrentPosition((position) => {
       console.log(position.coords);
+      setLatitude(position.coords.latitude);
+      setLongitude(position.coords.longitude);
+      getfirst();
+      getsecond();
+      getfoods();
+    });
+    navigator.geolocation.getCurrentPosition((position) => {
+      console.log(position.coords);
       setsecondLatitude(position.coords.latitude);
       setsecondLongitude(position.coords.longitude);
       getfirst();
@@ -61,7 +69,7 @@ export default function Home() {
     });
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [secondlatitude]);
+  }, []);
 
   const getfirst = async () => {
     const firstCollectionRef = collection(db, "first");
@@ -215,11 +223,11 @@ export default function Home() {
   };
   const Map = React.useMemo(
     () =>
-      dynamic(() => import("./components/map"), {
+      dynamic(() => import("../components/map"), {
         loading: () => <p>A map is loading</p>,
         ssr: false,
       }),
-    []
+    [firedata]
   );
   return (
     <>
