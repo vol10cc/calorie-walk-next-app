@@ -16,13 +16,18 @@
     "eslint": "8.32.0",
     "eslint-config-next": "13.1.6",
     "firebase": "^9.16.0",
+    "leaflet": "^1.9.3",
     "next": "13.1.6",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-geolocation": "^1.0.4",
+    "react-leaflet": "^4.2.0",
     "typescript": "4.9.4"
   },
   "rules": {
     "react-hooks/exhaustive-deps": "off"
+  },
+  "devDependencies": {
+    "@types/leaflet": "^1.9.0"
   }
 }

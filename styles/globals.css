@@ -13,6 +13,7 @@ header {
   top: 0;
   left: 0;
   opacity: 0.6;
+  z-index: 100000;
 }
 .center-input {
   text-align: center;
@@ -36,8 +37,8 @@ h3 {
   width: 30%;
 }
 img {
-  width: 100px;
-  height: 100px;
+  width: 120px;
+  height: 120px;
 }
 .btn {
   display: block;
@@ -45,6 +46,18 @@ img {
   margin-bottom: 30px;
   color: white;
   background-color: rgb(235, 97, 0);
+  border-radius: 10px;
+  padding: 10px;
+  font-size: 26px;
+  padding-bottom: 8px;
+  border: none;
+}
+.btn:active {
+  display: block;
+  margin: 10px auto;
+  margin-bottom: 30px;
+  color: white;
+  background-color: rgb(255, 182, 129);
   border-radius: 10px;
   padding: 10px;
   font-size: 26px;

@@ -1,5 +1,5 @@
 import Head from "next/head";
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { db, storage } from "../firebaseConfig.js";
 import {
   collection,
@@ -12,6 +12,7 @@ import {
 import { query, orderBy, where } from "firebase/firestore";
 import { onSnapshot, getDocs } from "firebase/firestore";
 import { ref } from "firebase/storage";
+import dynamic from "next/dynamic";
 
 export default function Home() {
   //1回目の緯度
@@ -52,14 +53,15 @@ export default function Home() {
     setLoading(true);
     navigator.geolocation.getCurrentPosition((position) => {
       console.log(position.coords);
-      setLatitude(position.coords.latitude);
-      setLongitude(position.coords.longitude);
+      setsecondLatitude(position.coords.latitude);
+      setsecondLongitude(position.coords.longitude);
       getfirst();
       getsecond();
       getfoods();
     });
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [secondlatitude]);
 
   const getfirst = async () => {
     const firstCollectionRef = collection(db, "first");
@@ -122,16 +124,16 @@ export default function Home() {
       });
   };
 
-  const removeDate = () => {
-    let fieldToEdit = doc(db, "first", firstID);
-    deleteDoc(fieldToEdit)
-      .then(() => {
-        alert("記事を削除しました");
-      })
-      .catch((err) => {
-        alert("記事の削除に失敗しました");
-      });
-  };
+  // const removeDate = () => {
+  //   let fieldToEdit = doc(db, "first", firstID);
+  //   deleteDoc(fieldToEdit)
+  //     .then(() => {
+  //       alert("記事を削除しました");
+  //     })
+  //     .catch((err) => {
+  //       alert("記事の削除に失敗しました");
+  //     });
+  // };
 
   // 二点間の座標から距離を求める
   function calcDistance(
@@ -164,6 +166,7 @@ export default function Home() {
     const prevLatitude = firedata[0]?.latitude;
     const prevLongtitude = firedata[0]?.longitude;
     //ボタンを押したら，latitudeとlongitudeを設定
+
     await navigator.geolocation.getCurrentPosition((position) => {
       setsecondLatitude(position.coords.latitude);
       setsecondLongitude(position.coords.longitude);
@@ -180,43 +183,44 @@ export default function Home() {
         )
       );
     });
+
+    // setStep(Math.round(distance * 1400));
+    // setCalorie(Math.round(distance * kg));
+    // console.log("結果がでました！");
+    // console.log(Math.round(distance));
+    // getsecond();
+    // getfoods();
+    // setProcessing(false);
+    setFoodprocess(true);
+    const firstRef = collection(db, "current");
+    const newdate = new Date().toLocaleString("ja-JP");
     setStep(Math.round(distance * 1400));
     setCalorie(Math.round(distance * kg));
-    setFoodprocess(true);
-    console.log("結果がでました！");
-    console.log(Math.round(distance));
-    setProcessing(false);
-    getsecond();
-    getfoods();
-    // const firstRef = collection(db, "current");
-    // const newdate = new Date().toLocaleString("ja-JP");
-
-    // await addDoc(firstRef, {
-    //   latitude: latitude,
-    //   date: newdate,
-    //   longitude: longitude,
-    // })
-    //   .then(() => {
-    //     console.log("結果がでました！");
-    //     console.log(distance);
-    //     setProcessing(false);
-    //     getsecond();
-    //     getfoods();
-    //     setStep(Math.round(distance * 1400));
-    //     setCalorie(Math.round(distance * kg));
-    //   })
-    //   .catch((err) => {
-    //     console.log(err);
-    //   });
+    await addDoc(firstRef, {
+      latitude: latitude,
+      date: newdate,
+      longitude: longitude,
+    })
+      .then(() => {
+        console.log("結果がでました！");
+        console.log(distance);
+        setProcessing(false);
+        getsecond();
+        getfoods();
+      })
+      .catch((err) => {
+        console.log(err);
+        setDistance(0);
+      });
   };
-
-  // 距離から歩数を計算
-  // const CalcStrideStep = () => {
-  //   const strideLength = 0.0008; //歩幅は80cm km換算
-  //   const res = Math.floor(distance / strideLength);
-  //   setStep(res);
-  // };
-
+  const Map = React.useMemo(
+    () =>
+      dynamic(() => import("./components/map"), {
+        loading: () => <p>A map is loading</p>,
+        ssr: false,
+      }),
+    []
+  );
   return (
     <>
       <Head>
@@ -257,28 +261,10 @@ export default function Home() {
             現在の位置を取得して、計算する
           </button>
         </div>
-
-        {/* <div className="btn-margin">
-          {currentfiredata.map((currentdata) => (
-            <div key={currentdata.id}>
-              {firedata.map((data) => (
-                <div key={data.id}>
-                  <button
-                    id="btn"
-                    className="btn btn-outline-primary btn-lg"
-                    onClick={() => removeDate()}
-                  >
-                    履歴を削除する
-                  </button>
-                </div>
-              ))}
-            </div>
-          ))}
-        </div> */}
         <div className="max-1000">
           <h3>最初の位置</h3>
           <div className="txt-margin">
-            {loading && <p>読み込み中</p>}
+            {loading && <p>読み込み中・・・</p>}
             {firedata.map((data) => (
               <div key={data.id}>
                 <div>
@@ -290,32 +276,30 @@ export default function Home() {
                     経度：<span id="longitude">{data.longitude}</span>
                     <span>度</span>
                   </p>
+                  <Map latitude={data.latitude} longitude={data.longitude} />
                 </div>
               </div>
             ))}
           </div>
 
-          <h3>2回目の位置</h3>
-          <div className="txt-margin">
-            {/* {currentfiredata.length === 0 && <p>データがありません</p>}
-          {currentfiredata.map((data) => ( */}
-            {/* <div key={data.id}> */}
-            {/* {data.id === undefined && <p>データなし</p>} */}
-            <p>
-              緯度：<span id="latitude">{secondlatitude}</span>
-              <span>度</span>
-            </p>
-            <p>
-              経度：<span id="longitude">{secondlongitude}</span>
-              <span>度</span>
-            </p>
-            {/* </div> */}
-            {/* ))} */}
-          </div>
           <div className="food">
             {/* TODO: 食べていいものをDBから引っ張ってきて表示させる */}
             {foodprocess && (
               <>
+                <h3>2回目の位置</h3>
+                <div className="txt-margin">
+                  <p>
+                    緯度：<span id="latitude">{secondlatitude}</span>
+                    <span>度</span>
+                  </p>
+                  <p>
+                    経度：<span id="longitude">{secondlongitude}</span>
+                    <span>度</span>
+                  </p>
+                  <Map latitude={secondlatitude} longitude={secondlongitude} />
+                  {/* </div> */}
+                  {/* ))} */}
+                </div>
                 <h3>結果</h3>
                 <div className="distance">
                   <p>
