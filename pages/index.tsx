@@ -1,8 +1,15 @@
 import Head from "next/head";
 import React, { useState } from "react";
 import { db, storage } from "../firebaseConfig.js";
-import { collection, setDoc, doc, addDoc, deleteDoc } from "firebase/firestore";
-import { query, orderBy } from "firebase/firestore";
+import {
+  collection,
+  setDoc,
+  doc,
+  addDoc,
+  deleteDoc,
+  limit,
+} from "firebase/firestore";
+import { query, orderBy, where } from "firebase/firestore";
 import { onSnapshot, getDocs } from "firebase/firestore";
 import { ref } from "firebase/storage";
 
@@ -19,10 +26,14 @@ export default function Home() {
   const [secondlongitude, setsecondLongitude] = useState(0);
   //2回目のID
   const [secondID, setsecondID] = useState("");
+  //食べ物の読み込み
+  const [foodprocess, setFoodprocess] = useState(false);
   //食べ物
   const [foods, setFoods] = useState<any[]>([]);
   //距離
-  const [calorie, setCalorie] = useState(500);
+  const [calorie, setCalorie] = useState(0);
+  //体重
+  const [kg, setKg] = useState(0);
   //カロリー
   const [distance, setDistance] = useState(0);
   //歩数
@@ -30,24 +41,15 @@ export default function Home() {
   //処理中フラグ
   const [processing, setProcessing] = useState(false);
 
-  // const [ foodData, setFoodData ] = useState: string[]([]);
-  // const [process, setProces] = useState(false);
-  //初回のデータ
-  // const [firstdata, setFirstdata] = useState([]);
-  // type Todo = {
-  //   id: string;
-  //   latitude: number;
-  //   longitude: number;
-  //   date: any;
-  // };
-  const [ID, setID] = useState(0);
+  //初回ローディングフラグ
+  const [loading, setLoading] = useState(false);
+
   const [firedata, setFiredata] = useState<any[]>([]);
   const [currentfiredata, setcurrentFiredata] = useState<any[]>([]);
-  // const databaseRef = collection(db, "first");
-  // const q = query(databaseRef, orderBy("latitude", "desc"));
 
   //初回の緯度・経度取得
   React.useEffect(() => {
+    setLoading(true);
     navigator.geolocation.getCurrentPosition((position) => {
       console.log(position.coords);
       setLatitude(position.coords.latitude);
@@ -66,9 +68,9 @@ export default function Home() {
         querySnapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id }))
       );
     });
-    // setfirstID(firedata[0].id);
-    // console.log("aa");
-    // console.log(firstID);
+    setfirstID(firedata[0]?.id);
+    console.log(firstID);
+    setLoading(false);
   };
 
   const getsecond = async () => {
@@ -78,7 +80,6 @@ export default function Home() {
         querySnapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id }))
       );
     });
-    setsecondID(currentfiredata[0]);
   };
 
   const getfoods = async () => {
@@ -95,14 +96,6 @@ export default function Home() {
         })
       );
     });
-
-    // const currentCollectionRef = collection(db, "foods");
-    // getDocs(currentCollectionRef)
-    //   .then((querySnapshot) => {
-    //     return setFoods(
-    //       querySnapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id }))
-    //     );
-    //   })
   };
 
   //初回緯度経度firestoreにデータ保存
@@ -165,76 +158,64 @@ export default function Home() {
   }
 
   const GetCurrentGeo = async () => {
-    //ボタンを押したら，latitudeとlongitudeを設定
-    const prevLatitude = latitude;
-    const prevLongtitude = longitude;
-    navigator.geolocation.getCurrentPosition((position) => {
-      setLatitude(position.coords.latitude);
-      setLongitude(position.coords.longitude);
-      setDistance(
-        calcDistance(latitude, longitude, prevLatitude, prevLongtitude)
-      );
-    });
-    CalcStrideStep();
-
     if (processing) return;
     // 処理中フラグを上げる
     setProcessing(true);
-    const firstRef = collection(db, "current");
-    const newdate = new Date().toLocaleString("ja-JP");
-    console.log(latitude);
-    console.log(longitude);
+    const prevLatitude = firedata[0]?.latitude;
+    const prevLongtitude = firedata[0]?.longitude;
+    //ボタンを押したら，latitudeとlongitudeを設定
+    await navigator.geolocation.getCurrentPosition((position) => {
+      setsecondLatitude(position.coords.latitude);
+      setsecondLongitude(position.coords.longitude);
+      console.log(secondlatitude);
+      console.log(secondlongitude);
+      console.log(prevLatitude);
+      console.log(prevLongtitude);
+      setDistance(
+        calcDistance(
+          secondlatitude,
+          secondlongitude,
+          prevLatitude,
+          prevLongtitude
+        )
+      );
+    });
+    setStep(Math.round(distance * 1400));
+    setCalorie(Math.round(distance * kg));
+    setFoodprocess(true);
+    console.log("結果がでました！");
+    console.log(Math.round(distance));
+    setProcessing(false);
+    getsecond();
+    getfoods();
+    // const firstRef = collection(db, "current");
+    // const newdate = new Date().toLocaleString("ja-JP");
 
-    await addDoc(firstRef, {
-      latitude: latitude,
-      date: newdate,
-      longitude: longitude,
-    })
-      .then(() => {
-        console.log("投稿ができました！");
-        setProcessing(false);
-        getsecond();
-      })
-      .catch((err) => {
-        console.log(err);
-      });
+    // await addDoc(firstRef, {
+    //   latitude: latitude,
+    //   date: newdate,
+    //   longitude: longitude,
+    // })
+    //   .then(() => {
+    //     console.log("結果がでました！");
+    //     console.log(distance);
+    //     setProcessing(false);
+    //     getsecond();
+    //     getfoods();
+    //     setStep(Math.round(distance * 1400));
+    //     setCalorie(Math.round(distance * kg));
+    //   })
+    //   .catch((err) => {
+    //     console.log(err);
+    //   });
   };
 
   // 距離から歩数を計算
-  const CalcStrideStep = () => {
-    const strideLength = 0.0008; //歩幅は80cm km換算
-    const res = Math.floor(distance / strideLength);
-    setStep(res);
-  };
-
-  // db.collection("titles").onSnapshot(async (snapshot) =>
-  // // listsのデータがここで完成する
-  // {
-  //   const fileNameWithExts = snapshot.docs
-  //     .map((doc) => doc.data())
-  //     .map((name) => {
-  //       // console.log(name)
-  //       return {name.text, name.aaa};
-  //     });
-
-  // const foodsURL = await Promise.all(
-  //   nameOfFoods.map(async (nameOfFood) => {
-  //     const urls = `gs://pictures-storage-5b9d3.appspot.com/images/${nameOfFood}`;
-
-  //     const gsReference = ref(storage, urls);
-
-  //     const url = await getDownloadURL(gsReference).catch((err) =>
-  //       console.log(err)
-  //     );
-
-  //     const imageSize = await getImageSize(url).catch((e) =>
-  //       console.log(e.message)
-  //     );
-
-  //     return {
-  //       url,
-  //       fileNameWithExt,
-  //     }
+  // const CalcStrideStep = () => {
+  //   const strideLength = 0.0008; //歩幅は80cm km換算
+  //   const res = Math.floor(distance / strideLength);
+  //   setStep(res);
+  // };
 
   return (
     <>
@@ -244,16 +225,12 @@ export default function Home() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
+      <header>
+        <a href="#" className="return-top">
+          GeoLunch
+        </a>
+      </header>
       <div className="center">
-        <div className="btn-margin">
-          <button
-            id="btn"
-            className="btn btn-outline-primary btn-lg"
-            onClick={GetCurrentGeo}
-          >
-            現在の位置を取得する
-          </button>
-        </div>
         <div className="btn-margin">
           <button
             id="btn"
@@ -263,17 +240,25 @@ export default function Home() {
             最初の位置を取得する
           </button>
         </div>
-
+        <div className="center-input">
+          <label>体重 </label>
+          <input
+            onChange={(e: any) => setKg(e.target.value)}
+            type="text"
+          ></input>{" "}
+          kg
+        </div>
         <div className="btn-margin">
           <button
             id="btn"
             className="btn btn-outline-primary btn-lg"
-            // onClick={}
+            onClick={GetCurrentGeo}
           >
-            計算する
+            現在の位置を取得して、計算する
           </button>
         </div>
-        <div className="btn-margin">
+
+        {/* <div className="btn-margin">
           {currentfiredata.map((currentdata) => (
             <div key={currentdata.id}>
               {firedata.map((data) => (
@@ -289,80 +274,91 @@ export default function Home() {
               ))}
             </div>
           ))}
-        </div>
-
-        <h3>最初の位置</h3>
-        <div className="txt-margin">
-          {firedata.length === 0 && <p>データがありません</p>}
-          {firedata
-            .filter((data) => {
-              if (data.calorie === 500) {
-                return data;
-              }
-              {
-                return data;
-              }
-            })
-            .map((data) => (
+        </div> */}
+        <div className="max-1000">
+          <h3>最初の位置</h3>
+          <div className="txt-margin">
+            {loading && <p>読み込み中</p>}
+            {firedata.map((data) => (
               <div key={data.id}>
-                <p>
-                  {data.id}
-                  緯度：<span id="latitude">{data.latitude}</span>
-                  <span>度</span>
-                </p>
-                <p>
-                  経度：<span id="longitude">{data.longitude}</span>
-                  <span>度</span>
-                </p>
+                <div>
+                  <p>
+                    緯度：<span id="latitude">{data.latitude}</span>
+                    <span>度</span>
+                  </p>
+                  <p>
+                    経度：<span id="longitude">{data.longitude}</span>
+                    <span>度</span>
+                  </p>
+                </div>
               </div>
             ))}
-        </div>
+          </div>
 
-        <h3>2回目の位置</h3>
-        <div className="txt-margin">
-          {currentfiredata.length === 0 && <p>データがありません</p>}
-          {currentfiredata.map((data) => (
-            <div key={data.id}>
-              {data.id === undefined && <p>データなし</p>}
-              <p>
-                {data.id}
-                緯度：<span id="latitude">{data.latitude}</span>
-                <span>度</span>
-              </p>
-              <p>
-                経度：<span id="longitude">{data.longitude}</span>
-                <span>度</span>
-              </p>
-            </div>
-          ))}
-        </div>
-
-        <div className="distance">
-          <p>
-            現在歩いた距離:<span id="distance">{distance}</span>
-            <span>km</span>
-          </p>
-        </div>
-        <div className="step">
-          <p>
-            現在歩いた歩数:<span id="step">{step}</span>
-            <span>歩</span>
-          </p>
-        </div>
-        <div className="food">
-          {/* TODO: 食べていいものをDBから引っ張ってきて表示させる */}
-          <h2>食べられる食事</h2>
-
-          {foods.map((food) => (
-            <div key={food.id}>
-              <p>
-                名前<span id="latitude">{food.name}</span>
-              </p>
-              <p>
-                カロリー<span id="latitude">{food.calorie}</span>
-              </p>
-            </div>
-          ))}
+          <h3>2回目の位置</h3>
+          <div className="txt-margin">
+            {/* {currentfiredata.length === 0 && <p>データがありません</p>}
+          {currentfiredata.map((data) => ( */}
+            {/* <div key={data.id}> */}
+            {/* {data.id === undefined && <p>データなし</p>} */}
+            <p>
+              緯度：<span id="latitude">{secondlatitude}</span>
+              <span>度</span>
+            </p>
+            <p>
+              経度：<span id="longitude">{secondlongitude}</span>
+              <span>度</span>
+            </p>
+            {/* </div> */}
+            {/* ))} */}
+          </div>
+          <div className="food">
+            {/* TODO: 食べていいものをDBから引っ張ってきて表示させる */}
+            {foodprocess && (
+              <>
+                <h3>結果</h3>
+                <div className="distance">
+                  <p>
+                    現在歩いた距離:
+                    <span id="distance">{Math.round(distance)}</span>
+                    <span>km</span>
+                  </p>
+                </div>
+                <div className="distance">
+                  <p>
+                    現在歩いたカロリー:<span id="distance">{calorie}</span>
+                    <span>カロリー</span>
+                  </p>
+                </div>
+                <div className="step">
+                  <p>
+                    現在歩いた歩数:<span id="step">{step}</span>
+                    <span>歩</span>
+                  </p>
+                </div>
+                <h3>食べられる食事</h3>
+                <div className="flx">
+                  {foods.map((food) => (
+                    <div key={food.id} className="flx_el">
+                      {food.calorie < calorie + 100 &&
+                        food.calorie > calorie - 100 && (
+                          <div>
+                            <img src={food.imageurl}></img>
+                            <p>
+                              品目<p id="latitude">{food.name}</p>
+                            </p>
+                            <p>
+                              カロリー
+                              <p id="latitude">{food.calorie}kcal</p>
+                            </p>
+                          </div>
+                        )}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </>

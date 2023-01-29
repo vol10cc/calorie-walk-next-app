@@ -1,0 +1,64 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+header {
+  height: 80px;
+  width: 100%;
+  padding-top: 20px;
+  padding-bottom: 20px;
+  background: rgb(255, 135, 135);
+  position: sticky;
+  top: 0;
+  left: 0;
+  opacity: 0.6;
+}
+.center-input {
+  text-align: center;
+  margin: 50px auto;
+}
+.max-1000 {
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.flx {
+  display: flex;
+  width: 100%;
+}
+
+h3 {
+  margin: 20px auto;
+}
+
+.flx_el {
+  width: 30%;
+}
+img {
+  width: 100px;
+  height: 100px;
+}
+.btn {
+  display: block;
+  margin: 10px auto;
+  margin-bottom: 30px;
+  color: white;
+  background-color: rgb(235, 97, 0);
+  border-radius: 10px;
+  padding: 10px;
+  font-size: 26px;
+  padding-bottom: 8px;
+  border: none;
+}
+main {
+  padding-top: 90px;
+}
+.return-top {
+  position: absolute;
+  left: 20px;
+  font-size: 20px;
+  text-decoration: none;
+  color: white;
+  font-weight: bold;
+}
